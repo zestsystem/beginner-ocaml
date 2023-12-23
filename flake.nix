@@ -1,25 +1,23 @@
 {
-  inputs = {
-    opam-nix.url = "github:tweag/opam-nix";
-    flake-utils.url = "github:numtide/flake-utils";
-    nixpkgs.follows = "opam-nix/nixpkgs";
-  };
-  outputs = { self, flake-utils, opam-nix, nixpkgs }@inputs:
-    # Don't forget to put the package name instead of `throw':
-    let package = throw "Put the package name here!";
-    in flake-utils.lib.eachDefaultSystem (system:
-      let
-        pkgs = nixpkgs.legacyPackages.${system};
-        on = opam-nix.lib.${system};
-        scope =
-          on.buildOpamProject { } package ./. { ocaml-base-compiler = "*"; };
-        overlay = final: prev:
-          {
-            # Your overrides go here
-          };
-      in {
-        legacyPackages = scope.overrideScope' overlay;
+  description = "Ocaml project using `ocaml-flake` and `flake-parts`";
 
-        packages.default = self.legacyPackages.${system}.${package};
-      });
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+  };
+
+  outputs = inputs @ {flake-parts, ...}:
+    flake-parts.lib.mkFlake {inherit inputs;} {
+      systems = ["x86_64-linux" "aarch64-linux" "aarch64-darwin" "x86_64-darwin"];
+      perSystem = {pkgs, ...}: {
+        devShells.default = pkgs.mkShell {
+          buildInputs = with pkgs; [
+            ocaml
+            ocamlPackages.dune_3
+            ocamlPackages.utop
+            ocamlPackages.ocaml-lsp
+            ocamlformat
+          ];
+        };
+      };
+    };
 }
